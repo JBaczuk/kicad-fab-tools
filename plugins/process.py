@@ -213,10 +213,13 @@ class ProcessManager:
                 for component in self.bom:
                     same_footprint = component['Footprint'] == self._normalize_footprint_name(footprint_name)
                     same_value = component['Value'].upper() == footprint.GetValue().upper()
-                    same_lcsc = component['LCSC Part #'] == self._get_mpn_from_footprint(footprint)
+                    same_lcsc = component['JLCPCP Part #'] == self._get_mpn_from_footprint(footprint)
                     under_limit = component['Quantity'] < bomRowLimit
+                    same_mfpn = component['Manufacturer Part #'] == footprint_get_field(footprint, 'Manufacturer Part #')
+                    same_mfpn1 = component['Manufacturer Part # Alt 1'] == footprint_get_field(footprint, 'Manufacturer Part # Alt 1')
+                    same_mfpn2 = component['Manufacturer Part # Alt 2'] == footprint_get_field(footprint, 'Manufacturer Part # Alt 2')
 
-                    if same_footprint and same_value and same_lcsc and under_limit:
+                    if same_footprint and same_value and same_lcsc and under_limit and same_mfpn and same_mfpn1 and same_mfpn2:
                         component['Designator'] += ", " + "{}{}{}".format(footprint.GetReference(), "" if unique_id == "" else "_", unique_id)
                         component['Quantity'] += 1
                         insert = False
@@ -230,7 +233,10 @@ class ProcessManager:
                         'Quantity': 1,
                         'Value': footprint.GetValue(),
                         # 'Mount': mount_type,
-                        'LCSC Part #': self._get_mpn_from_footprint(footprint),
+                        'JLCPCP Part #': self._get_mpn_from_footprint(footprint),
+                        'Manufacturer Part #': footprint_get_field(footprint, 'Manufacturer Part #'),
+                        'Manufacturer Part # Alt 1': footprint_get_field(footprint, 'Manufacturer Part # Alt 1'),
+                        'Manufacturer Part # Alt 2': footprint_get_field(footprint, 'Manufacturer Part # Alt 2')
                     })
 
     def generate_positions(self, temp_dir):
@@ -383,8 +389,8 @@ class ProcessManager:
 
     def _get_mpn_from_footprint(self, footprint) -> str:
         ''''Get the MPN/LCSC stock code from standard symbol fields.'''
-        keys = ['LCSC Part #', 'JLCPCB Part #']
-        fallback_keys = ['LCSC Part', 'JLC Part', 'LCSC', 'JLC', 'MPN', 'Mpn', 'mpn']
+        keys = ['JLCPCP Part #', 'JLCPCB Part #']
+        fallback_keys = []
 
         if footprint_has_field(footprint, 'dnp'):
             return 'DNP'
